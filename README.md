@@ -11,6 +11,17 @@ Converts Unreal Engine Blueprints to AngelScript classes using the BlueprintExpo
 
 ## Setup
 
+### BlueprintExporter Plugin (Unreal Editor)
+
+The plugin lives in `Plugins/BlueprintExporter/` and is included in the project. It loads automatically when you open the project in Unreal Editor — no manual steps needed.
+
+To verify it's running, check the Output Log for:
+```
+BlueprintExporter: HTTP server started on port 7233
+```
+
+If you need to rebuild the plugin (e.g. after C++ changes), recompile via the editor or regenerate project files with `GenerateProjectFiles.bat` and build from Visual Studio.
+
 ### MCP Server (first time only)
 
 1. Run `mcp/install.bat` to install Node.js dependencies
