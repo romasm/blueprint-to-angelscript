@@ -10,22 +10,41 @@ Convert the Blueprint at **$ARGUMENTS** to AngelScript implementation.
 
 ## Process:
 
-### 1. Extract Blueprint Data via MCP
+### 1. Extract Blueprint Data
 
-The BlueprintExporter MCP server bridges Claude Code to the Unreal Editor plugin (HTTP server on port 7233).
+The BlueprintExporter plugin runs an HTTP server on port 7233 inside the running Unreal Editor. Access it via MCP tools (preferred) or curl fallback.
+
+#### Method A: MCP Tools (preferred)
 
 **Check if the editor is running:**
 Use the `mcp__blueprint-exporter__ping_editor` tool.
 
-If the ping fails, ask the user to open Unreal Editor with the SignalsGame project.
-
 **Export the blueprint:**
 Use the `mcp__blueprint-exporter__export_blueprint` tool with `path` = `$ARGUMENTS`.
-
 This returns the complete graph data directly as JSON — no need to read a separate file.
 
 **To list available blueprints (optional):**
 Use the `mcp__blueprint-exporter__list_blueprints` tool with `filter` parameter.
+
+#### Method B: curl Fallback (if MCP tools are unavailable)
+
+**Check if the editor is running:**
+```bash
+curl -s http://localhost:7233/ping
+```
+
+**Export the blueprint:**
+```bash
+curl -s "http://localhost:7233/export?path=/Game/$ARGUMENTS"
+```
+This returns `{"success": true, "output_path": "...", "file_size": ...}`. Then read the JSON file at `output_path`.
+
+**To list available blueprints (optional):**
+```bash
+curl -s "http://localhost:7233/list?filter=BP_ClassName"
+```
+
+If both methods fail, ask the user to open Unreal Editor with the SignalsGame project.
 
 ### 2. Analyze the Exported Graph Data
 
@@ -179,7 +198,9 @@ Summarize what was generated:
 - Which functions have full implementations vs TODO stubs
 - File location as markdown link
 
-## MCP Tools Reference:
+## Tools Reference:
+
+### MCP Tools (preferred):
 
 | MCP Tool | Description |
 |---|---|
@@ -188,6 +209,18 @@ Summarize what was generated:
 | `mcp__blueprint-exporter__list_blueprints` | List blueprints matching optional filter |
 | `mcp__blueprint-exporter__export_struct` | Export UserDefinedStruct fields (returns JSON directly) |
 | `mcp__blueprint-exporter__export_enum` | Export UserDefinedEnum values (returns JSON directly) |
+
+### HTTP Endpoints (curl fallback):
+
+| Endpoint | Description |
+|---|---|
+| `GET http://localhost:7233/ping` | Check if editor is running |
+| `GET http://localhost:7233/export?path=/Game/...` | Export blueprint to JSON file |
+| `GET http://localhost:7233/list?filter=...` | List blueprints matching filter |
+| `GET http://localhost:7233/export-struct?path=/Game/...` | Export UserDefinedStruct to JSON file |
+| `GET http://localhost:7233/export-enum?path=/Game/...` | Export UserDefinedEnum to JSON file |
+
+Note: curl endpoints return `output_path` — you must then read the file. MCP tools return data directly.
 
 ## Converting Exported Data to AngelScript:
 
@@ -291,7 +324,9 @@ The plugin automatically detects the source of struct types:
 
 **Handling Blueprint Structs:**
 
-When you encounter a variable with `struct_source: "blueprint"`, export the struct definition using `mcp__blueprint-exporter__export_struct` with the struct's asset path.
+When you encounter a variable with `struct_source: "blueprint"`, export the struct definition:
+- **MCP:** Use `mcp__blueprint-exporter__export_struct` with the struct's asset path
+- **curl fallback:** `curl -s "http://localhost:7233/export-struct?path=/Game/Path/To/MyStruct"` then read the `output_path`
 
 **Converting to AngelScript Struct:**
 ```angelscript
@@ -312,7 +347,7 @@ struct FMyCustomStruct
 1. Check if struct is already defined in AngelScript using Grep
 2. For C++ structs (`struct_source: "cpp"`), they're usually available in AngelScript automatically
 3. For blueprint structs (`struct_source: "blueprint"`):
-   - Export the struct definition using `mcp__blueprint-exporter__export_struct`
+   - Export the struct definition using MCP tool or curl fallback
    - Remove `S_` prefix and add `F` prefix for the AngelScript struct name
    - Check if AngelScript equivalent exists (search for the converted name)
    - If not, create the struct definition in an appropriate location (e.g., `Script/Core/Data/Structs.as`)
@@ -327,7 +362,9 @@ struct FMyCustomStruct
 
 ### Enum Detection and Handling:
 
-When you encounter enum variables with `is_enum: true` and `enum_source: "blueprint"`, export the enum definition using `mcp__blueprint-exporter__export_enum` with the `enum_path` value.
+When you encounter enum variables with `is_enum: true` and `enum_source: "blueprint"`, export the enum definition:
+- **MCP:** Use `mcp__blueprint-exporter__export_enum` with the `enum_path` value
+- **curl fallback:** `curl -s "http://localhost:7233/export-enum?path=/Game/Path/To/MyEnum"` then read the `output_path`
 
 The tool returns JSON with the enum values directly:
 ```json
@@ -361,7 +398,7 @@ enum EMyEnum
 **Strategy:**
 1. Check if enum is already defined in AngelScript using Grep
 2. For C++ enums, they're usually available in AngelScript automatically
-3. For blueprint enums: export using `mcp__blueprint-exporter__export_enum`, check if AngelScript equivalent exists, create if not
+3. For blueprint enums: export using MCP tool or curl fallback, check if AngelScript equivalent exists, create if not
 4. Use the `display_name` field for clean enum value names when the internal name is auto-generated
 
 ### Naming Conversions:
