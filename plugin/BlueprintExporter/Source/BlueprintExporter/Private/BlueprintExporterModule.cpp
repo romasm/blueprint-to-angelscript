@@ -41,31 +41,31 @@ public:
 		PingRouteHandle = Router->BindRoute(
 			FHttpPath(TEXT("/ping")),
 			EHttpServerRequestVerbs::VERB_GET,
-			FHttpRequestHandler::CreateRaw(this, &FBlueprintExporterModule::HandlePing)
+			FHttpRequestHandler([this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return HandlePing(Request, OnComplete); })
 		);
 
 		ExportRouteHandle = Router->BindRoute(
 			FHttpPath(TEXT("/export")),
 			EHttpServerRequestVerbs::VERB_GET,
-			FHttpRequestHandler::CreateRaw(this, &FBlueprintExporterModule::HandleExport)
+			FHttpRequestHandler([this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return HandleExport(Request, OnComplete); })
 		);
 
 		ListRouteHandle = Router->BindRoute(
 			FHttpPath(TEXT("/list")),
 			EHttpServerRequestVerbs::VERB_GET,
-			FHttpRequestHandler::CreateRaw(this, &FBlueprintExporterModule::HandleList)
+			FHttpRequestHandler([this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return HandleList(Request, OnComplete); })
 		);
 
 		ExportStructRouteHandle = Router->BindRoute(
 			FHttpPath(TEXT("/export-struct")),
 			EHttpServerRequestVerbs::VERB_GET,
-			FHttpRequestHandler::CreateRaw(this, &FBlueprintExporterModule::HandleExportStruct)
+			FHttpRequestHandler([this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return HandleExportStruct(Request, OnComplete); })
 		);
 
 		ExportEnumRouteHandle = Router->BindRoute(
 			FHttpPath(TEXT("/export-enum")),
 			EHttpServerRequestVerbs::VERB_GET,
-			FHttpRequestHandler::CreateRaw(this, &FBlueprintExporterModule::HandleExportEnum)
+			FHttpRequestHandler([this](const FHttpServerRequest& Request, const FHttpResultCallback& OnComplete) { return HandleExportEnum(Request, OnComplete); })
 		);
 
 		HttpServerModule.StartAllListeners();
